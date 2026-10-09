@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: repository-visualizer-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    envVars:
+      # Your deployed frontend URL, e.g. https://your-site.vercel.app
+      - key: ALLOWED_ORIGINS
+        sync: false
+      # Optional tuning, defaults are fine to start with:
+      #   MAX_SOURCE_FILES (5000), CLONE_TIMEOUT (180 seconds),
+      #   MAX_CONCURRENT_ANALYSES (1)

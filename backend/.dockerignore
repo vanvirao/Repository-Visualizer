@@ -1,0 +1,8 @@
+venv
+.venv
+__pycache__
+*.pyc
+test_repo
+analyzer.py
+.git
+.env

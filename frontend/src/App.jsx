@@ -6,7 +6,7 @@ import GraphView from "./Graphview.jsx";
 import Inspector, { Overview } from "./Inspector";
 import { buildGraph } from "./graphUtils";
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 const plural = (n, one, many = `${one}s`) => (n === 1 ? one : many);
 
@@ -175,6 +175,12 @@ function App() {
             <div className="repo-path">
               {analysis.source || "Public GitHub repository"}
             </div>
+            {analysis.metrics?.truncated && (
+              <div className="truncated-note">
+                Partial analysis: {analysis.metrics.files} of{" "}
+                {analysis.metrics.source_files_found} source files
+              </div>
+            )}
           </div>
 
           <div className="stats">

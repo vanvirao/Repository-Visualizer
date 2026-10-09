@@ -737,6 +737,12 @@ input:focus-visible {
   font-size: 11px;
   color: var(--d-faint);
 }
+.truncated-note {
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--d-amber);
+}
 
 .stats {
   display: flex;

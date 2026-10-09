@@ -34,35 +34,84 @@ def detect_language(file_path):
     return SUPPORTED_EXTENSIONS.get(extension)
 
 
-def get_source_files(root_path):
-    source_files = []
+# Safety limits. They bound the work done per request, never the size of
+# the repository itself: a huge repository is still analyzed, up to
+# MAX_SOURCE_FILES supported source files.
+MAX_FILE_BYTES = 1_000_000
+MAX_SOURCE_FILES = int(os.getenv("MAX_SOURCE_FILES", "5000"))
+
+IGNORED_DIRECTORIES = {
+    "venv",
+    ".venv",
+    ".git",
+    "__pycache__",
+    "node_modules",
+    "dist",
+    "build",
+    "vendor",
+    "target",
+}
+
+
+def iter_source_files(root_path):
+    """
+    Yield every supported source file, in a stable order so that two runs
+    on the same repository always pick the same files.
+    """
 
     for current_root, directories, files in os.walk(root_path):
 
-        directories[:] = [
+        directories[:] = sorted(
             directory
             for directory in directories
-            if directory not in {
-                "venv",
-                ".git",
-                "__pycache__",
-                "node_modules",
-                "dist",
-                "build"
-            }
-        ]
+            if directory not in IGNORED_DIRECTORIES
+        )
 
-        for filename in files:
+        for filename in sorted(files):
 
             file_path = os.path.join(
                 current_root,
                 filename
             )
 
-            if detect_language(file_path):
-                source_files.append(file_path)
+            if not detect_language(file_path):
+                continue
+
+            # A symlink could point at files outside the repository.
+            if os.path.islink(file_path):
+                continue
+
+            # Skip generated or minified monsters.
+            try:
+                if os.path.getsize(file_path) > MAX_FILE_BYTES:
+                    continue
+            except OSError:
+                continue
+
+            yield file_path
+
+
+def get_source_files(root_path):
+    """
+    The files that will be analyzed: at most MAX_SOURCE_FILES of them.
+    """
+
+    source_files = []
+
+    for file_path in iter_source_files(root_path):
+        if len(source_files) >= MAX_SOURCE_FILES:
+            break
+        source_files.append(file_path)
 
     return source_files
+
+
+def count_source_files(root_path):
+    """
+    How many supported source files the repository has in total.
+    """
+
+    return sum(1 for _ in iter_source_files(root_path))
 
 
 def analyze_repository(root_path):
