@@ -1,12 +1,14 @@
 import { useMemo } from "react";
-function FileRow({ node, onSelect, count }) {
+function FileRow({ node, onSelect, count, theme }) {
+  const color = node.colors[theme];
+
   return (
     <button className="file-row" onClick={() => onSelect(node.id)}>
       <i
         className="role-dot"
         style={{
-          background: node.color.fill,
-          borderColor: node.color.border,
+          background: color.fill,
+          borderColor: color.border,
         }}
       />
       <span className="file-row-text">
@@ -18,7 +20,7 @@ function FileRow({ node, onSelect, count }) {
   );
 }
 
-function FileList({ title, ids, graph, onSelect, emptyText }) {
+function FileList({ title, ids, graph, onSelect, emptyText, theme }) {
   const nodes = ids.map((id) => graph.byId.get(id)).filter(Boolean);
 
   return (
@@ -29,7 +31,9 @@ function FileList({ title, ids, graph, onSelect, emptyText }) {
       {nodes.length === 0 ? (
         <p className="side-empty">{emptyText}</p>
       ) : (
-        nodes.map((n) => <FileRow key={n.id} node={n} onSelect={onSelect} />)
+        nodes.map((n) => (
+          <FileRow key={n.id} node={n} onSelect={onSelect} theme={theme} />
+        ))
       )}
     </div>
   );
@@ -38,17 +42,25 @@ function FileList({ title, ids, graph, onSelect, emptyText }) {
 // ------------------------------------------------------------
 // Shown when nothing is selected
 // ------------------------------------------------------------
-export function Overview({ graph, onSelect }) {
+export function Overview({ graph, onSelect, theme, isShown }) {
   const mostImported = useMemo(
     () =>
       [...graph.nodes]
         .filter(
           (n) =>
-            n.usedBy.length > 0 && n.role !== "test" && n.role !== "examples"
+            isShown(n) &&
+            n.usedBy.length > 0 &&
+            n.role !== "test" &&
+            n.role !== "examples"
         )
         .sort((a, b) => b.usedBy.length - a.usedBy.length)
         .slice(0, 8),
-    [graph]
+    [graph, isShown]
+  );
+
+  const isolated = useMemo(
+    () => graph.isolated.filter(isShown),
+    [graph, isShown]
   );
 
   return (
@@ -65,6 +77,7 @@ export function Overview({ graph, onSelect }) {
             <FileRow
               key={n.id}
               node={n}
+              theme={theme}
               count={n.usedBy.length}
               onSelect={onSelect}
             />
@@ -72,17 +85,17 @@ export function Overview({ graph, onSelect }) {
         )}
       </div>
 
-      {graph.isolated.length > 0 && (
-        <details className="side-section isolated">
+      {isolated.length > 0 && (
+        <details className="side-section isolated" open={graph.connected.length === 0}>
           <summary>
-            Not connected <span className="side-count">{graph.isolated.length}</span>
+            Not connected <span className="side-count">{isolated.length}</span>
           </summary>
           <p className="side-hint">
             No imports to or from other files. Often entry points, scripts, or
             files loaded dynamically.
           </p>
-          {graph.isolated.map((n) => (
-            <FileRow key={n.id} node={n} onSelect={onSelect} />
+          {isolated.map((n) => (
+            <FileRow key={n.id} node={n} theme={theme} onSelect={onSelect} />
           ))}
         </details>
       )}
@@ -93,7 +106,9 @@ export function Overview({ graph, onSelect }) {
 // ------------------------------------------------------------
 // Shown when a file is selected
 // ------------------------------------------------------------
-function Inspector({ node, graph, onSelect, onClose }) {
+function Inspector({ node, graph, onSelect, onClose, theme }) {
+  const color = node.colors[theme];
+
   return (
     <aside className="sidebar">
       <div className="side-section inspector-head">
@@ -107,9 +122,9 @@ function Inspector({ node, graph, onSelect, onClose }) {
         <span
           className="role-chip"
           style={{
-            borderColor: node.color.border,
-            color: node.color.text,
-            background: node.color.fill,
+            borderColor: color.border,
+            color: color.text,
+            background: color.fill,
           }}
         >
           {node.group}
@@ -139,6 +154,7 @@ function Inspector({ node, graph, onSelect, onClose }) {
         title="Imports"
         ids={node.dependsOn}
         graph={graph}
+        theme={theme}
         onSelect={onSelect}
         emptyText="This file doesn't import any other file in the repo."
       />
@@ -147,6 +163,7 @@ function Inspector({ node, graph, onSelect, onClose }) {
         title="Imported by"
         ids={node.usedBy}
         graph={graph}
+        theme={theme}
         onSelect={onSelect}
         emptyText="No other file in the repo imports this one."
       />

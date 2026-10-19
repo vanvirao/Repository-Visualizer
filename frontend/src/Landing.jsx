@@ -5,7 +5,8 @@ import {
   useSpring,
   useTransform,
 } from "motion/react";
-import HeroGraph, { HERO_LEGEND, HERO_STATS } from "./HeroGraph";
+import HeroGraph from "./HeroGraph";
+import { HERO_LEGEND, HERO_STATS } from "./heroData";
 
 const EXAMPLES = ["expressjs/express", "koajs/koa"];
 

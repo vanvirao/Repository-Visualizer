@@ -22,22 +22,39 @@ export function classify(path) {
 export const isSupport = (role) => role === "test" || role === "examples";
 
 // ------------------------------------------------------------
-// Colors
+// Colors (one palette per theme)
 // ------------------------------------------------------------
 
 const FOLDER_HUES = [212, 160, 38, 280, 340, 190, 95, 20];
 
-const folderColor = (index) => ({
-  fill: `hsl(${FOLDER_HUES[index]}, 42%, 30%)`,
-  border: `hsl(${FOLDER_HUES[index]}, 62%, 62%)`,
-  text: "#F4F8FC",
-});
-
-const FIXED_COLORS = {
-  tests: { fill: "#2B3949", border: "#5A6E84", text: "#C3CEDA" },
-  examples: { fill: "#1D5C50", border: "#3FA58A", text: "#E4F5EF" },
-  other: { fill: "#34404E", border: "#7C8DA0", text: "#E1E8EF" },
+const PALETTES = {
+  dark: {
+    folder: (i) => ({
+      fill: `hsl(${FOLDER_HUES[i]}, 42%, 30%)`,
+      border: `hsl(${FOLDER_HUES[i]}, 62%, 62%)`,
+      text: "#F4F8FC",
+    }),
+    fixed: {
+      tests: { fill: "#2B3949", border: "#5A6E84", text: "#C3CEDA" },
+      examples: { fill: "#1D5C50", border: "#3FA58A", text: "#E4F5EF" },
+      other: { fill: "#34404E", border: "#7C8DA0", text: "#E1E8EF" },
+    },
+  },
+  light: {
+    folder: (i) => ({
+      fill: `hsl(${FOLDER_HUES[i]}, 52%, 80%)`,
+      border: `hsl(${FOLDER_HUES[i]}, 46%, 36%)`,
+      text: `hsl(${FOLDER_HUES[i]}, 62%, 11%)`,
+    }),
+    fixed: {
+      tests: { fill: "#D2DAE4", border: "#6D7F95", text: "#27374A" },
+      examples: { fill: "#BFE3D5", border: "#2D8A70", text: "#0C3B2F" },
+      other: { fill: "#D3DBE5", border: "#667790", text: "#1E2B3A" },
+    },
+  },
 };
+
+const THEMES = Object.keys(PALETTES);
 
 // Which folder a file belongs to: the first directory, skipping a leading
 // "src/". Files at the top level share the group "root" (or "src").
@@ -118,6 +135,7 @@ export function buildGraph(analysis) {
           : role === "examples"
           ? "examples"
           : folderGroup(path),
+      language: n.language || "",
       functions: n.functions || [],
       classes: n.classes || [],
       dependsOn: dependsOn.get(n.id),
@@ -152,35 +170,66 @@ export function buildGraph(analysis) {
     (a, b) => b[1] - a[1] || a[0].localeCompare(b[0])
   );
 
-  const colorByGroup = new Map();
-  rankedFolders.forEach(([name], i) => {
-    colorByGroup.set(
-      name,
-      i < FOLDER_HUES.length ? folderColor(i) : FIXED_COLORS.other
-    );
-  });
-  colorByGroup.set("tests", FIXED_COLORS.tests);
-  colorByGroup.set("examples", FIXED_COLORS.examples);
-
   nodes.forEach((n) => {
-    n.color = colorByGroup.get(n.group) || FIXED_COLORS.other;
+    n.colors = {};
+  });
+
+  THEMES.forEach((theme) => {
+    const palette = PALETTES[theme];
+    const colorByGroup = new Map();
+
+    rankedFolders.forEach(([name], i) => {
+      colorByGroup.set(
+        name,
+        i < FOLDER_HUES.length ? palette.folder(i) : palette.fixed.other
+      );
+    });
+    colorByGroup.set("tests", palette.fixed.tests);
+    colorByGroup.set("examples", palette.fixed.examples);
+
+    nodes.forEach((n) => {
+      n.colors[theme] = colorByGroup.get(n.group) || palette.fixed.other;
+    });
   });
 
   return { nodes, edges, byId, connected, isolated, hubThreshold };
 }
 
-// Legend entries for whichever nodes are currently visible.
-export function legendGroups(nodes) {
+const groupRank = (name) => (name === "examples" ? 1 : name === "tests" ? 2 : 0);
+
+// Legend / filter entries: one per folder group, biggest folders first.
+export function legendGroups(nodes, theme = "dark") {
   const counts = new Map();
   nodes.forEach((n) => {
-    const entry = counts.get(n.group) || { name: n.group, color: n.color, count: 0 };
+    const entry = counts.get(n.group) || {
+      name: n.group,
+      color: n.colors[theme],
+      count: 0,
+    };
     entry.count += 1;
     counts.set(n.group, entry);
   });
 
-  const rank = (g) => (g.name === "examples" ? 1 : g.name === "tests" ? 2 : 0);
-
   return [...counts.values()].sort(
-    (a, b) => rank(a) - rank(b) || b.count - a.count || a.name.localeCompare(b.name)
+    (a, b) =>
+      groupRank(a.name) - groupRank(b.name) ||
+      b.count - a.count ||
+      a.name.localeCompare(b.name)
   );
+}
+
+// Everything the filter menu needs: folder groups and languages, counted
+// over every file (connected or not).
+export function filterOptions(graph, theme = "dark") {
+  const languages = new Map();
+  graph.nodes.forEach((n) => {
+    if (n.language) languages.set(n.language, (languages.get(n.language) || 0) + 1);
+  });
+
+  return {
+    groups: legendGroups(graph.nodes, theme),
+    languages: [...languages.entries()]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
+  };
 }

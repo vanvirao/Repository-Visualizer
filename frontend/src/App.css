@@ -21,9 +21,30 @@
   --d-faint: #62768B;
   --d-accent: #7DB4F0;
   --d-amber: #E3B65B;
+  --d-grid: rgba(125, 180, 240, 0.045);
+  --d-overlay: rgba(15, 24, 34, 0.9);
+  --d-shadow: rgba(0, 0, 0, 0.6);
 
   --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+}
+
+
+/* Light workspace: same layout, second set of colors. Landing stays light
+   and keeps its dark preview window, because it never gets data-theme. */
+.app[data-theme="light"] {
+  --d-bg: #EEF1F5;
+  --d-panel: #FFFFFF;
+  --d-raised: #F1F4F8;
+  --d-line: #D3DAE3;
+  --d-ink: #16202B;
+  --d-muted: #5A6B7D;
+  --d-faint: #8393A4;
+  --d-accent: #1B4D8F;
+  --d-amber: #B7791F;
+  --d-grid: rgba(27, 77, 143, 0.08);
+  --d-overlay: rgba(255, 255, 255, 0.92);
+  --d-shadow: rgba(22, 32, 43, 0.18);
 }
 
 * { box-sizing: border-box; }
@@ -456,8 +477,8 @@ input:focus-visible {
   overflow: hidden;
   background-color: var(--d-bg);
   background-image:
-    linear-gradient(rgba(125, 180, 240, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(125, 180, 240, 0.045) 1px, transparent 1px);
+    linear-gradient(var(--d-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--d-grid) 1px, transparent 1px);
   background-size: 32px 32px;
   background-position: center top;
   color: var(--d-muted);
@@ -509,7 +530,7 @@ input:focus-visible {
   border: 1px solid var(--d-line);
   border-radius: 8px;
   background: var(--d-bg);
-  box-shadow: 0 40px 80px -32px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 40px 80px -32px var(--d-shadow);
 }
 
 .loading-bar {
@@ -539,8 +560,8 @@ input:focus-visible {
 .loading-canvas {
   padding: 14px 10px 8px;
   background-image:
-    linear-gradient(rgba(125, 180, 240, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(125, 180, 240, 0.045) 1px, transparent 1px);
+    linear-gradient(var(--d-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--d-grid) 1px, transparent 1px);
   background-size: 28px 28px;
 }
 
@@ -835,8 +856,8 @@ input:focus-visible {
   overflow: hidden;
   background-color: var(--d-bg);
   background-image:
-    linear-gradient(rgba(125, 180, 240, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(125, 180, 240, 0.045) 1px, transparent 1px);
+    linear-gradient(var(--d-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--d-grid) 1px, transparent 1px);
   background-size: 32px 32px;
 }
 
@@ -850,7 +871,7 @@ input:focus-visible {
   padding: 9px 12px;
   border: 1px solid var(--d-line);
   border-radius: 6px;
-  background: rgba(15, 24, 34, 0.9);
+  background: var(--d-overlay);
   font-size: 11px;
   color: var(--d-muted);
   pointer-events: none;
@@ -1054,3 +1075,159 @@ input:focus-visible {
   .tool-button { padding: 0 11px; }
   .legend-note { display: none; }
 }
+/* =========================================================
+   TOOLBAR EXTRAS: menus, theme button
+   ========================================================= */
+
+.graph-section { position: relative; }
+
+.tool-button.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 0 12px;
+}
+
+.menu-panel {
+  position: absolute;
+  top: 50px;
+  right: 10px;
+  z-index: 20;
+  width: 270px;
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  padding: 6px 0 10px;
+  border: 1px solid var(--d-line);
+  border-radius: 8px;
+  background: var(--d-panel);
+  box-shadow: 0 18px 40px -14px var(--d-shadow);
+}
+
+.menu-panel-narrow { width: 250px; }
+
+.menu-title {
+  padding: 10px 16px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--d-faint);
+}
+
+.menu-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px;
+  font-size: 12.5px;
+  color: var(--d-ink);
+  cursor: pointer;
+}
+
+.menu-check:hover { background: var(--d-raised); }
+.menu-check input { accent-color: var(--d-accent); margin: 0; }
+
+.menu-check i {
+  width: 10px;
+  height: 10px;
+  border: 1px solid;
+  border-radius: 3px;
+}
+
+.menu-check-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-check-count { font-family: var(--font-mono); font-size: 11px; color: var(--d-faint); }
+
+.menu-reset {
+  display: block;
+  width: calc(100% - 32px);
+  margin: 10px 16px 2px;
+  padding: 7px 0;
+  border: 1px solid var(--d-line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--d-muted);
+  font-size: 12px;
+}
+
+.menu-reset:hover:not(:disabled) { border-color: var(--d-faint); color: var(--d-ink); }
+.menu-reset:disabled { opacity: 0.45; cursor: default; }
+
+.menu-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 9px 16px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: var(--d-ink);
+}
+
+.menu-item:hover { background: var(--d-raised); }
+.menu-item strong { font-size: 13px; font-weight: 600; }
+.menu-item span { font-size: 11.5px; color: var(--d-faint); }
+
+/* ---------------------------------------------------------
+   Empty graph states
+   --------------------------------------------------------- */
+
+.graph-empty-state {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  text-align: center;
+}
+
+.graph-empty-state h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--d-ink);
+}
+
+.graph-empty-state p {
+  max-width: 420px;
+  margin: 0 0 8px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--d-muted);
+}
+
+.graph-empty-state .empty-hint { color: var(--d-faint); }
+
+/* Three loose boxes: a graph with nothing connected. */
+.empty-mark {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.empty-mark i {
+  width: 34px;
+  height: 20px;
+  border: 1.5px dashed var(--d-faint);
+  border-radius: 6px;
+  opacity: 0.7;
+}
+
+.empty-mark i:nth-child(2) { transform: translateY(8px); }
+
+.empty-action {
+  margin-top: 8px;
+  padding: 8px 16px;
+  border: 1px solid var(--d-line);
+  border-radius: 6px;
+  background: var(--d-panel);
+  color: var(--d-ink);
+  font-size: 12.5px;
+}
+
+.empty-action:hover { border-color: var(--d-faint); }

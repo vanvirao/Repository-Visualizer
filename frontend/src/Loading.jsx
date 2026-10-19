@@ -23,11 +23,23 @@ const SLOW_NOTE_AT = 12;
 
 const HUES = { entry: 340, routes: 212, services: 160, shared: 38 };
 
-const colorOf = (group) => ({
-  fill: `hsl(${HUES[group]}, 42%, 30%)`,
-  border: `hsl(${HUES[group]}, 62%, 62%)`,
-  text: "#F4F8FC",
-});
+const colorOf = (group, theme) =>
+  theme === "light"
+    ? {
+        fill: `hsl(${HUES[group]}, 52%, 80%)`,
+        border: `hsl(${HUES[group]}, 46%, 36%)`,
+        text: `hsl(${HUES[group]}, 62%, 11%)`,
+      }
+    : {
+        fill: `hsl(${HUES[group]}, 42%, 30%)`,
+        border: `hsl(${HUES[group]}, 62%, 62%)`,
+        text: "#F4F8FC",
+      };
+
+const EDGE_COLORS = {
+  dark: { dim: "#3F5368", live: "#6F95BE", packet: "#7DB4F0" },
+  light: { dim: "#8798AD", live: "#3F6FA3", packet: "#1B6FD0" },
+};
 
 const RAW_NODES = [
   { id: "app", label: "app", group: "entry", x: 62, y: 180, col: 0 },
@@ -79,7 +91,6 @@ const NODES = RAW_NODES.map((n) => {
     hub: importers >= HUB_AT,
     w: Math.round(n.label.length * fs * 0.62 + 24),
     h: 26 + Math.min(importers, 6) * 2,
-    color: colorOf(n.group),
   };
 });
 
@@ -101,11 +112,10 @@ const EDGES = RAW_EDGES.map(([s, t]) => {
   };
 });
 
-const EDGE_DIM = "#3F5368";
-const EDGE_LIVE = "#6F95BE";
 const NO_MOTION = { duration: 0 };
 
-function LoadingGraph({ stage, reduce }) {
+function LoadingGraph({ stage, reduce, theme }) {
+  const edge = EDGE_COLORS[theme] || EDGE_COLORS.dark;
   const parsed = stage >= 1; // nodes get their color and name
   const linked = stage >= 2; // edges are drawn
   const settled = stage >= 3; // graph is complete, keeps moving quietly
@@ -127,7 +137,7 @@ function LoadingGraph({ stage, reduce }) {
           orient="auto"
           markerUnits="userSpaceOnUse"
         >
-          <path d="M0,0 L7,3.5 L0,7 z" fill={EDGE_LIVE} />
+          <path d="M0,0 L7,3.5 L0,7 z" fill={edge.live} />
         </marker>
       </defs>
 
@@ -141,7 +151,7 @@ function LoadingGraph({ stage, reduce }) {
             animate={{
               pathLength: linked ? 1 : 0,
               opacity: linked ? (e.toHub ? 0.32 : 0.85) : 0,
-              stroke: settled ? EDGE_LIVE : EDGE_DIM,
+              stroke: settled ? edge.live : edge.dim,
               strokeWidth: 1.2,
             }}
             transition={
@@ -156,7 +166,7 @@ function LoadingGraph({ stage, reduce }) {
           />
 
           {settled && !reduce && !e.toHub && (
-            <circle r="2.6" fill="#7DB4F0">
+            <circle r="2.6" fill={edge.packet}>
               <animateMotion
                 dur={`${2.4 + (i % 4) * 0.45}s`}
                 repeatCount="indefinite"
@@ -171,6 +181,7 @@ function LoadingGraph({ stage, reduce }) {
         const appear = 0.1 + n.col * 0.14;
         const fillDelay = n.col * 0.12;
         const pulse = n.hub && settled && !reduce;
+        const color = colorOf(n.group, theme);
 
         return (
           <motion.g
@@ -194,7 +205,7 @@ function LoadingGraph({ stage, reduce }) {
                 width={n.w + 12}
                 height={n.h + 12}
                 rx="10"
-                fill={n.color.border}
+                fill={color.border}
                 initial={false}
                 animate={{ opacity: !parsed ? 0 : pulse ? [0.12, 0.3, 0.12] : 0.18 }}
                 transition={
@@ -215,7 +226,7 @@ function LoadingGraph({ stage, reduce }) {
               height={n.h}
               rx="6"
               fill="none"
-              stroke={EDGE_DIM}
+              stroke={edge.dim}
               strokeWidth="1"
               strokeDasharray="3 3"
               initial={false}
@@ -229,8 +240,8 @@ function LoadingGraph({ stage, reduce }) {
               width={n.w}
               height={n.h}
               rx="6"
-              fill={n.color.fill}
-              stroke={n.color.border}
+              fill={color.fill}
+              stroke={color.border}
               strokeWidth={n.hub ? 2 : 1}
               initial={false}
               animate={{ opacity: parsed ? 1 : 0 }}
@@ -245,7 +256,7 @@ function LoadingGraph({ stage, reduce }) {
               fontFamily="'IBM Plex Mono', Consolas, monospace"
               fontSize={n.fs}
               fontWeight="500"
-              fill={n.color.text}
+              fill={color.text}
               initial={false}
               animate={{ opacity: parsed ? 1 : 0 }}
               transition={reduce ? NO_MOTION : { delay: fillDelay + 0.15, duration: 0.35 }}
@@ -279,7 +290,7 @@ const clock = (seconds) => {
   return `${mm}:${ss}`;
 };
 
-function Loading({ repo = "", onCancel }) {
+function Loading({ repo = "", onCancel, theme = "dark" }) {
   const reduce = useReducedMotion();
   const [elapsed, setElapsed] = useState(0);
 
@@ -306,7 +317,7 @@ function Loading({ repo = "", onCancel }) {
           </div>
 
           <div className="loading-canvas">
-            <LoadingGraph stage={stage} reduce={reduce} />
+            <LoadingGraph stage={stage} reduce={reduce} theme={theme} />
           </div>
 
           <div className="loading-track" aria-hidden="true">

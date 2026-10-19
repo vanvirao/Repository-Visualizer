@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import Landing from "./Landing";
 import Loading from "./Loading";
@@ -50,6 +50,32 @@ function App() {
   const [selectedId, setSelectedId] = useState(null);
   const abortRef = useRef(null);
 
+  // Light / dark workspace. The landing page is always light.
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem("rv-theme") === "light" ? "light" : "dark";
+    } catch {
+      return "dark";
+    }
+  });
+
+  // Folder and language filters for the graph and sidebar.
+  const [hiddenGroups, setHiddenGroups] = useState(() => new Set());
+  const [hiddenLangs, setHiddenLangs] = useState(() => new Set());
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("rv-theme", theme);
+    } catch {
+      /* private mode: the choice just won't be remembered */
+    }
+  }, [theme]);
+
+  const clearFilters = () => {
+    setHiddenGroups(new Set());
+    setHiddenLangs(new Set());
+  };
+
   // --------------------------------------------------
   // Analyze GitHub repository
   // --------------------------------------------------
@@ -67,6 +93,7 @@ function App() {
     setIsAnalyzing(true);
     setAnalysis(null);
     setSelectedId(null);
+    clearFilters();
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -110,6 +137,7 @@ function App() {
     setAnalysis(null);
     setSelectedId(null);
     setError("");
+    clearFilters();
   };
 
   // Esc clears the selection.
@@ -141,14 +169,19 @@ function App() {
 
   const selectedNode = graph && selectedId ? graph.byId.get(selectedId) : null;
 
+  const isShown = useCallback(
+    (node) => !hiddenGroups.has(node.group) && !hiddenLangs.has(node.language),
+    [hiddenGroups, hiddenLangs]
+  );
+
   // --------------------------------------------------
   // Render
   // --------------------------------------------------
 
   if (isAnalyzing) {
     return (
-      <div className="app">
-        <Loading repo={githubUrl} onCancel={cancelAnalysis} />
+      <div className="app" data-theme={theme}>
+        <Loading repo={githubUrl} onCancel={cancelAnalysis} theme={theme} />
       </div>
     );
   }
@@ -167,7 +200,7 @@ function App() {
   }
 
   return (
-    <div className="app">
+    <div className="app" data-theme={theme}>
       <div className="workspace">
         <header className="workspace-header">
           <div className="workspace-title">
@@ -198,19 +231,32 @@ function App() {
           <GraphView
             key={runId}
             graph={graph}
+            repoName={analysis.repository || "repository"}
+            theme={theme}
+            onToggleTheme={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
             selectedId={selectedId}
             onSelect={setSelectedId}
+            hiddenGroups={hiddenGroups}
+            hiddenLangs={hiddenLangs}
+            onHiddenGroupsChange={setHiddenGroups}
+            onHiddenLangsChange={setHiddenLangs}
           />
 
           {selectedNode ? (
             <Inspector
               node={selectedNode}
               graph={graph}
+              theme={theme}
               onSelect={setSelectedId}
               onClose={() => setSelectedId(null)}
             />
           ) : (
-            <Overview graph={graph} onSelect={setSelectedId} />
+            <Overview
+              graph={graph}
+              theme={theme}
+              isShown={isShown}
+              onSelect={setSelectedId}
+            />
           )}
         </div>
       </div>
